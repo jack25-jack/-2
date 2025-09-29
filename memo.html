@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>예 메모장 구독형</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial; background: #F5FFFA; margin: 0; padding: 0; }
+    #adBanner { width: 100%; height: 60px; background: #FFD700; text-align: center; line-height: 60px; font-size: 18px; font-weight: bold; color: black; position: fixed; top: 0; left: 0; z-index: 1000; }
+    #container { width: 1200px; margin: 100px auto 50px auto; background: white; padding: 40px; border-radius: 25px; box-shadow: 0 0 20px rgba(0,0,0,0.1); font-size: 20px; }
+    textarea { width: 100%; height: 700px; margin-top: 20px; font-size: 18px; padding: 10px; border-radius: 10px; border: 1px solid #ccc; resize: vertical; }
+    input, button { margin-top: 20px; width: 100%; padding: 15px; font-size: 18px; border-radius: 10px; border: 1px solid #ccc; }
+    button { cursor: pointer; background: #4CAF50; color: white; border: none; }
+    button:hover { background: #45a049; }
+  </style>
+</head>
+<body>
+  <div id="adBanner">광고 영역 - 구독 시 제거</div>
+
+  <div id="container">
+    <h1>ㅇㅇ 메모장 구독형</h1>
+    <input type="email" id="email" placeholder="이메일">
+    <input type="password" id="password" placeholder="비밀번호">
+    <button onclick="login()">로그인/회원가입</button>
+    <hr>
+    <input type="text" id="title" placeholder="새 메모 제목">
+    <textarea id="content" placeholder="새 메모 내용"></textarea>
+    <button onclick="saveMemo()">저장</button>
+    <button onclick="loadMemo()">메모 불러오기</button>
+    <button onclick="subscribe()">월간 구독 서비스 이용하기</button>
+  </div>
+
+  <script>
+    // 🔹 Firebase 초기화 (자신 Firebase 프로젝트 설정 필요)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
+    let isSubscribed = false; // 구독 상태
+
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          currentUser = userCredential.user;
+          alert("로그인 성공!");
+          checkSubscription(); // 구독 상태 확인
+        })
+        .catch((error) => {
+          // 회원가입 자동
+          auth.createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+              currentUser = userCredential.user;
+              alert("회원가입 완료!");
+              checkSubscription();
+            })
+            .catch((err) => alert(err.message));
+        });
+    }
+
+    function saveMemo() {
+      if (!currentUser) { alert("로그인 후 이용가능한 서비스 입니다!!"); return; }
+
+      const title = document.getElementById("title").value;
+      const content = document.getElementById("content").value;
+
+      db.collection("memos").doc(currentUser.uid).set({
+        title: title,
+        content: content
+      })
+      .then(() => alert("메모 저장 완료!"))
+      .catch((err) => alert(err.message));
+    }
+
+    function loadMemo() {
+      if (!currentUser) { alert("로그인 후 이용가능한 서비스 입니다!!"); return; }
+
+      db.collection("memos").doc(currentUser.uid).get()
+        .then((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            document.getElementById("title").value = data.title;
+            document.getElementById("content").value = data.content;
+            alert("메모 불러오기 성공!");
+          } else {
+            alert("저장된 메모가 없습니다.");
+          }
+        })
+        .catch((err) => alert(err.message));
+    }
+
+    function subscribe() {
+      if (!currentUser) { alert("로그인 후 이용가능한 서비스 입니다!!"); return; }
+
+      // 여기서 Stripe 구독 결제 연결 (테스트용 시뮬레이션)
+      isSubscribed = true;
+      document.getElementById("adBanner").style.display = "none";
+      alert("구독 완료! 광고가 제거되었습니다.");
+    }
+
+    function checkSubscription() {
+      // 실제 DB에서 구독 상태 확인 가능
+      // 여기선 테스트용으로 false로 시작
+      if (isSubscribed) document.getElementById("adBanner").style.display = "none";
+      else document.getElementById("adBanner").style.display = "block";
+    }
+  </script>
+</body>
+</html>
